@@ -35,7 +35,7 @@ jobs:
           --install "ndk;28.2.13676358"
         echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> $GITHUB_ENV
         sed -i 's/compileSdk = 35/&\
-            ndkVersion = "28.2.13676358"/' ${{ github.workspace }}/Firenet/app/build.gradle.kts
+            ndkVersion = "28.2.13676358"/' ${{ github.workspace }}/APP/app/build.gradle.kts
 
     - name: Restore cached libtun2socks
       id: cache-libtun2socks-restore
@@ -58,7 +58,7 @@ jobs:
 
     - name: Copy libtun2socks
       run: |
-        cp -r ${{ github.workspace }}/libs ${{ github.workspace }}/Firenet/app
+        cp -r ${{ github.workspace }}/libs ${{ github.workspace }}/APP/app
 
     - name: Fetch AndroidLibXrayLite tag
       run: |
@@ -74,7 +74,7 @@ jobs:
         repository: '2dust/AndroidLibXrayLite'
         tag: ${{ env.CURRENT_TAG }}
         fileName: 'libv2ray.aar'
-        out-file-path: Firenet/app/libs/
+        out-file-path: APP/app/libs/
 
     - name: Restore cached libhysteria2
       id: cache-libhysteria2-restore
@@ -104,7 +104,7 @@ jobs:
 
     - name: Copy libhysteria2
       run: |
-        cp -r ${{ github.workspace }}/hysteria/libs ${{ github.workspace }}/Firenet/app
+        cp -r ${{ github.workspace }}/hysteria/libs ${{ github.workspace }}/APP/app
 
     - name: Setup Java
       uses: actions/setup-java@v4.7.0
@@ -128,12 +128,12 @@ jobs:
     
     - name: Move google-services.json into app
       run: |
-        mv ${{ steps.google_services.outputs.filePath }} ${{ github.workspace }}/Firenet/app/google-services.json
+        mv ${{ steps.google_services.outputs.filePath }} ${{ github.workspace }}/APP/app/google-services.json
         
     - name: Build APK
       run: |
         cd ${{ github.workspace }}
-        cd Firenet
+        cd APP
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         chmod 755 gradlew
         ./gradlew assembleRelease -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} -Pandroid.injected.signing.store.password=${{ secrets.APP_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.APP_KEYSTORE_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.APP_KEY_PASSWORD }}
@@ -143,27 +143,27 @@ jobs:
       if: ${{  success() }}
       with:
         name: arm64-v8a
-        path: ${{ github.workspace }}/Firenet/app/build/outputs/apk/*/release/*arm64-v8a*.apk
+        path: ${{ github.workspace }}/APP/app/build/outputs/apk/*/release/*arm64-v8a*.apk
 
     - name: Upload armeabi-v7a APK
       uses: actions/upload-artifact@v4.6.2
       if: ${{  success() }}
       with:
         name: armeabi-v7a
-        path: ${{ github.workspace }}/Firenet/app/build/outputs/apk/*/release/*armeabi-v7a*.apk
+        path: ${{ github.workspace }}/APP/app/build/outputs/apk/*/release/*armeabi-v7a*.apk
 
     - name: Upload x86 APK
       uses: actions/upload-artifact@v4.6.2
       if: ${{  success() }}
       with:
         name: x86-apk
-        path: ${{ github.workspace }}/Firenet/app/build/outputs/apk/*/release/*x86*.apk
+        path: ${{ github.workspace }}/APP/app/build/outputs/apk/*/release/*x86*.apk
 
     - name: Upload to release
       uses: svenstaro/upload-release-action@v2
       if: github.event.inputs.release_tag != ''
       with:
-        file: ${{ github.workspace }}/Firenet/app/build/outputs/apk/*/release/*.apk
+        file: ${{ github.workspace }}/APP/app/build/outputs/apk/*/release/*.apk
         tag: ${{ github.event.inputs.release_tag }}
         file_glob: true
         prerelease: true
