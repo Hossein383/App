@@ -21,7 +21,7 @@ android {
         keystoreProps.load(keystorePropsFile.inputStream())
     }
 
-    namespace = "com.v2ray.ang"
+    namespace = "com.ghognus"
     compileSdk = 35
 
     defaultConfig {
