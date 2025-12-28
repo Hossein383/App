@@ -4,6 +4,9 @@
     <color name="colorPingRed">#FF0099</color>
     <color name="colorConfigType">#f97910</color>
 
+    <color name="bg_dark">#120B2A</color> <color name="card_bg">#251B4D</color> <color name="accent_green">#00FFA3</color> <color name="text_white">#FFFFFF</color>
+    <color name="text_gray">#B0B0B0</color>
+    
     <color name="color_fab_active">#f97910</color>
     <color name="color_fab_inactive">#9C9C9C</color>
     <color name="color_secondary">#727272</color>
