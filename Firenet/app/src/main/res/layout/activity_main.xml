@@ -84,9 +84,10 @@
                 android:orientation="vertical"
                 android:padding="12dp">
                 <TextView
+                    android:id="@+id/tvUserStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="حجم مصرفی"
+                    android:text="وضعیت سرویس"
                     android:textColor="#99FFFFFF"
                     android:textSize="12sp" />
                 <TextView
@@ -123,11 +124,21 @@
             </LinearLayout>
         </LinearLayout>
 
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/pbWaiting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:visibility="invisible"
+            app:indicatorColor="#FFFFFF"
+            app:trackColor="#33FFFFFF"
+            app:layout_constraintTop_toBottomOf="@id/box_status" />
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:layout_constraintBottom_toTopOf="@+id/box_recycler"
-            app:layout_constraintTop_toBottomOf="@id/box_status">
+            app:layout_constraintTop_toBottomOf="@id/pbWaiting">
 
             <ImageView
                 android:id="@+id/ring1"
