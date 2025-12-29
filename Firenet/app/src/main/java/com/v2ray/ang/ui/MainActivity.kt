@@ -138,7 +138,6 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        com.blongho.country_data.World.init(this) // فعال‌سازی کتابخانه پرچم
         title = getString(R.string.title_server)
 
         binding.btnMenu.setOnClickListener {
