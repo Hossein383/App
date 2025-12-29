@@ -54,59 +54,72 @@ class MainRecyclerAdapter(val activity: MainActivity) : RecyclerView.Adapter<Mai
         }
     }
 
-    private fun updateUI(holder: MainViewHolder, isSelected: Boolean) {
-        val binding = holder.itemMainBinding
-        
-        // پاک کردن انیمیشن‌های قبلی برای جلوگیری از تداخل
-        binding.layoutIndicator.clearAnimation()
+private fun updateUI(holder: MainViewHolder, isSelected: Boolean) {
+    val binding = holder.itemMainBinding
+    val serverData = mActivity.mainViewModel.serversCache.getOrNull(holder.layoutPosition) ?: return
+    val remarks = serverData.profile.remarks // نام سرور
 
-        if (isSelected) {
-            // ۱. اعمال پس‌زمینه درخشان
-            try {
-                binding.layoutIndicator.setBackgroundResource(R.drawable.bg_server_active)
-            } catch (e: Exception) {
-                binding.layoutIndicator.setBackgroundColor(Color.parseColor("#7C4DFF"))
-            }
-            
-            binding.layoutIndicator.backgroundTintList = null 
-            binding.ivStatusIcon.setImageResource(R.drawable.ic_server_active)
-            binding.ivStatusIcon.setColorFilter(Color.WHITE)
-            binding.tvName.setTextColor(Color.parseColor("#00E5FF")) 
-            binding.tvName.maxLines = 2
+    binding.layoutIndicator.clearAnimation()
 
-            // ۲. انیمیشن بزرگ شدن (Pop)
-            binding.layoutIndicator.animate()
-                .scaleX(1.15f)
-                .scaleY(1.15f)
-                .setDuration(300)
-                .setInterpolator(OvershootInterpolator())
-                .start()
-
-            // ۳. انیمیشن نبض زدن (Shimmer/Pulse Effect)
-            val pulseAnim = AlphaAnimation(0.7f, 1.0f).apply {
-                duration = 800
-                repeatMode = Animation.REVERSE
-                repeatCount = Animation.INFINITE
-            }
-            binding.layoutIndicator.startAnimation(pulseAnim)
-
-        } else {
-            // حالت غیرفعال (Glassmorphism)
-            binding.layoutIndicator.setBackgroundResource(R.drawable.bg_glass_input)
-            binding.layoutIndicator.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#33FFFFFF"))
-            binding.ivStatusIcon.setImageResource(R.drawable.ic_server_idle)
-            binding.ivStatusIcon.setColorFilter(Color.LTGRAY)
-            binding.tvName.setTextColor(Color.WHITE)
-            binding.tvName.maxLines = 1
-
-            // بازگشت به اندازه اصلی
-            binding.layoutIndicator.animate()
-                .scaleX(1.0f)
-                .scaleY(1.0f)
-                .setDuration(200)
-                .start()
-        }
+    // --- منطق تشخیص پرچم ---
+    val countryCode = getCountryCode(remarks)
+    if (countryCode.isNotEmpty()) {
+        val flagResId = com.blongho.country_data.World.getFlagOf(countryCode)
+        binding.ivStatusIcon.setImageResource(flagResId)
+        binding.ivStatusIcon.colorFilter = null // حذف فیلتر رنگ برای نمایش رنگ واقعی پرچم
+    } else {
+        binding.ivStatusIcon.setImageResource(R.drawable.ic_server_idle)
+        binding.ivStatusIcon.setColorFilter(if (isSelected) Color.WHITE else Color.LTGRAY)
     }
+
+    if (isSelected) {
+        // حالت انتخاب شده
+        binding.layoutIndicator.setBackgroundResource(R.drawable.bg_server_active)
+        binding.layoutIndicator.backgroundTintList = null 
+        binding.tvName.setTextColor(Color.parseColor("#00E5FF")) 
+        binding.tvName.maxLines = 2
+
+        // انیمیشن پاپ و نبض
+        binding.layoutIndicator.animate().scaleX(1.15f).scaleY(1.15f).setDuration(300)
+            .setInterpolator(OvershootInterpolator()).start()
+
+        val pulseAnim = AlphaAnimation(0.7f, 1.0f).apply {
+            duration = 800
+            repeatMode = Animation.REVERSE
+            repeatCount = Animation.INFINITE
+        }
+        binding.layoutIndicator.startAnimation(pulseAnim)
+
+        // نمایش هاله نوری (اگر در XML اضافه کردیم)
+        binding.layoutIndicator.alpha = 1.0f
+
+    } else {
+        // حالت عادی (شیشه‌ای)
+        binding.layoutIndicator.setBackgroundResource(R.drawable.bg_glass_input)
+        binding.layoutIndicator.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#33FFFFFF"))
+        binding.tvName.setTextColor(Color.WHITE)
+        binding.tvName.maxLines = 1
+
+        binding.layoutIndicator.animate().scaleX(1.0f).scaleY(1.0f).setDuration(200).start()
+    }
+}
+
+// تابع کمکی برای تشخیص کد کشور از روی نام سرور
+private fun getCountryCode(remarks: String): String {
+    val r = remarks.lowercase()
+    return when {
+        r.contains("germany") || r.contains("آلمان") || r.contains(" de ") || r.startsWith("de-") -> "de"
+        r.contains("usa") || r.contains("united states") || r.contains("آمریکا") || r.contains(" us ") -> "us"
+        r.contains("turkey") || r.contains("ترکیه") || r.contains(" tr ") -> "tr"
+        r.contains("united kingdom") || r.contains("انگلیس") || r.contains(" uk ") || r.contains(" gb ") -> "gb"
+        r.contains("france") || r.contains("فرانسه") || r.contains(" fr ") -> "fr"
+        r.contains("netherlands") || r.contains("هلند") || r.contains(" nl ") -> "nl"
+        r.contains("canada") || r.contains("کانادا") || r.contains(" ca ") -> "ca"
+        r.contains("finland") || r.contains("فنلاند") || r.contains(" fi ") -> "fi"
+        r.contains("singapore") || r.contains("سنگاپور") || r.contains(" sg ") -> "sg"
+        else -> ""
+    }
+}
 
     fun setSelectServer(guid: String, position: Int = -1) {
         val lastSelected = MmkvManager.getSelectServer()
