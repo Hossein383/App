@@ -488,7 +488,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         V2RayServiceManager.startVService(this)
     }
 
-    private fun restartV2Ray() {
+    fun restartV2Ray() {
         // ۱. توقف سرویس فعلی
         V2RayServiceManager.stopVService(this)
         
