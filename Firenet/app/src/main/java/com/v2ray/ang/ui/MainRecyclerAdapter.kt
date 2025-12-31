@@ -12,6 +12,9 @@ import com.v2ray.ang.handler.MmkvManager
 
 class MainRecyclerAdapter(val mActivity: MainActivity) : RecyclerView.Adapter<MainRecyclerAdapter.MainViewHolder>() {
 
+    // این متغیر برای هماهنگی با MainActivity الزامی است
+    var isRunning: Boolean = false
+
     override fun getItemCount() = mActivity.mainViewModel.serversCache.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MainViewHolder {
@@ -25,7 +28,6 @@ class MainRecyclerAdapter(val mActivity: MainActivity) : RecyclerView.Adapter<Ma
     }
 
     override fun onBindViewHolder(holder: MainViewHolder, position: Int) {
-        // استفاده از getOrNull برای امنیت بیشتر
         val serverData = mActivity.mainViewModel.serversCache.getOrNull(position)
         val serverGuid = serverData?.guid ?: ""
         val isSelected = serverGuid == (MmkvManager.getSelectServer() ?: "")
@@ -33,15 +35,15 @@ class MainRecyclerAdapter(val mActivity: MainActivity) : RecyclerView.Adapter<Ma
         val binding = holder.itemMainBinding
         binding.tvName.text = serverData?.profile?.remarks ?: "Unknown"
 
-        // تنظیمات ظاهری (UI)
+        // مدیریت ظاهر کارت
         if (isSelected) {
             binding.cardMaster.setCardBackgroundColor(Color.parseColor("#3300D2FF"))
             binding.cardMaster.strokeColor = Color.parseColor("#00D2FF")
             binding.cardMaster.strokeWidth = 4
             binding.tvName.setTextColor(Color.parseColor("#00D2FF"))
             
-            // انیمیشن انتخاب
             binding.cardMaster.animate().scaleX(1.05f).scaleY(1.05f).setDuration(300).setInterpolator(OvershootInterpolator()).start()
+            
             val pulse = AlphaAnimation(0.6f, 1.0f).apply {
                 duration = 1000
                 repeatMode = Animation.REVERSE
@@ -59,19 +61,31 @@ class MainRecyclerAdapter(val mActivity: MainActivity) : RecyclerView.Adapter<Ma
 
         holder.itemView.setOnClickListener {
             if (serverGuid.isNotEmpty() && serverGuid != MmkvManager.getSelectServer()) {
-                val oldGuid = MmkvManager.getSelectServer()
-                val oldPos = mActivity.mainViewModel.getPosition(oldGuid ?: "")
-                
-                MmkvManager.setSelectServer(serverGuid)
-                
-                notifyItemChanged(oldPos)
-                notifyItemChanged(position)
-
-                // سوییچ سرور و ری‌استارت v2ray
-                if (mActivity.mainViewModel.isRunning.value == true) {
-                    mActivity.restartV2Ray()
-                }
+                setSelectServer(serverGuid)
             }
+        }
+    }
+
+    // اضافه کردن متد setSelectServer برای فراخوانی از MainActivity (اسکرول)
+    fun setSelectServer(guid: String) {
+        val currentSelect = MmkvManager.getSelectServer() ?: ""
+        if (guid == currentSelect) return
+
+        val oldPos = mActivity.mainViewModel.getPosition(currentSelect)
+        val newPos = mActivity.mainViewModel.getPosition(guid)
+        
+        MmkvManager.setSelectServer(guid)
+        
+        if (oldPos >= 0) notifyItemChanged(oldPos)
+        if (newPos >= 0) notifyItemChanged(newPos)
+        
+        if (newPos >= 0) {
+            mActivity.scrollToPositionCentered(newPos)
+        }
+
+        // اگر VPN روشن است، با تغییر سرور ری‌استارت شود
+        if (mActivity.mainViewModel.isRunning.value == true) {
+            mActivity.restartV2Ray()
         }
     }
 
