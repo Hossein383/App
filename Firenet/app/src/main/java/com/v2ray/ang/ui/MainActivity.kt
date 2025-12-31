@@ -124,9 +124,9 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         })
     }
     private fun setupViewModel() {
-        mainViewModel.isRunning.observe(this) { isRunning ->
-            adapter.isRunning = isRunning
-            if (isRunning) {
+        mainViewModel.isRunning.observe(this) { isRunningValue -> // تغییر نام برای جلوگیری از تداخل
+            adapter.isRunning = isRunningValue
+            if (isRunningValue) {
                 startConnectedAnimation()
                 binding.fab.setImageResource(R.drawable.disconnect_button)
                 binding.tvConnectionStatus.setText(R.string.connected)
@@ -136,8 +136,6 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 binding.tvConnectionStatus.setText(R.string.not_connected)
             }
         }
-        mainViewModel.reloadServerList()
-    }
 
     fun restartV2Ray() {
         V2RayServiceManager.stopVService(this)
