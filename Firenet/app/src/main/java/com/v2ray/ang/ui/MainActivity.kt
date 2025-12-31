@@ -285,30 +285,28 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     // --- Recycler View Logic ---
 
     private fun setupHorizontalRecyclerView() {
-        binding.recyclerView.setHasFixedSize(true)
+        // اطمینان از اینکه لیست به صورت افقی و روان چیده می‌شود
         val layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         binding.recyclerView.layoutManager = layoutManager
+        
+        // حل مشکل نمایش ناقص: SnapHelper باعث می‌شود سرورها دقیقاً وسط بایستند
+        binding.recyclerView.onFlingListener = null // جلوگیری از خطای اتصال مجدد
+        val snapHelper = LinearSnapHelper()
+        snapHelper.attachToRecyclerView(binding.recyclerView)
+    
         binding.recyclerView.adapter = adapter
-        LinearSnapHelper().attachToRecyclerView(binding.recyclerView)
-
-        binding.recyclerView.post {
-            val padding = (binding.recyclerView.width / 2) - (80 * resources.displayMetrics.density).toInt()
-            binding.recyclerView.setPadding(padding, 0, padding, 0)
-        }
-
+    
+        // گوش دادن به تغییرات اسکرول برای انتخاب خودکار سرور وسطی
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) { scaleItems(recyclerView) }
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    val centerView = LinearSnapHelper().findSnapView(layoutManager)
-                    if (centerView != null) {
-                        val pos = layoutManager.getPosition(centerView)
-                        if (pos != RecyclerView.NO_POSITION && pos < mainViewModel.serversCache.size) {
-                            val guid = mainViewModel.serversCache[pos].guid ?: ""
-                            if (guid.isNotEmpty() && guid != MmkvManager.getSelectServer()) {
-                                adapter.setSelectServer(guid)
-                            }
-                        }
+                    val centerView = snapHelper.findSnapView(layoutManager)
+                    val pos = centerView?.let { layoutManager.getPosition(it) }
+                    if (pos != null && pos != -1) {
+                        // منطق انتخاب سرور بر اساس موقعیت اسکرول
+                        val guid = mainViewModel.servers[pos].guid
+                        adapter.setSelectServer(guid)
                     }
                 }
             }
