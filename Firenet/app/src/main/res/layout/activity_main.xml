@@ -15,13 +15,11 @@
         android:layout_height="match_parent">
 
         <View
-            android:layout_width="300dp"
-            android:layout_height="300dp"
-            android:layout_marginTop="-150dp"
-            android:background="@android:drawable/screen_background_dark_transparent"
-            android:backgroundTint="#1A00D2FF"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:id="@+id/bg_active"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#1A00D2FF"
+            android:visibility="invisible" />
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/headerActions"
@@ -48,7 +46,7 @@
                     android:id="@+id/tvTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Safe Connection"
+                    android:text="@string/app_name"
                     android:textColor="#FFFFFF"
                     android:textSize="18sp"
                     android:textStyle="bold"
@@ -98,6 +96,7 @@
                     android:gravity="center"
                     android:orientation="vertical">
                     <TextView
+                        android:id="@+id/tvUserStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="حجم مصرفی"
@@ -141,13 +140,22 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/box_status" />
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:layout_constraintBottom_toTopOf="@+id/box_recycler"
-            app:layout_constraintTop_toBottomOf="@id/box_status">
+            app:layout_constraintTop_toBottomOf="@id/tabGroup">
 
             <ImageView android:id="@+id/ring1" android:layout_width="260dp" android:layout_height="260dp" android:src="@drawable/ic_arc_ring" android:alpha="0.1" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" />
+            <ImageView android:id="@+id/ring2" android:layout_width="230dp" android:layout_height="230dp" android:src="@drawable/ic_arc_ring" android:alpha="0.05" android:rotation="45" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" />
+            <ImageView android:id="@+id/ring3" android:layout_width="200dp" android:layout_height="200dp" android:src="@drawable/ic_arc_ring" android:alpha="0.02" android:rotation="90" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" />
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/fab"
@@ -157,8 +165,6 @@
                 app:maxImageSize="170dp"
                 android:backgroundTint="@android:color/transparent"
                 app:elevation="0dp"
-                app:hoveredFocusedTranslationZ="0dp"
-                app:pressedTranslationZ="0dp"
                 app:srcCompat="@drawable/connect_button"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -170,7 +176,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:text="آماده برای شروع"
+                android:text="@string/not_connected"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -182,7 +188,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="تست پینگ"
+                android:text="@string/connection_test_pending"
                 android:textColor="#00D2FF"
                 android:textSize="12sp"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -214,7 +220,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="20dp"
-                    android:text="انتخاب سرور پرسرعت"
+                    android:text="سرورهای فعال"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -236,7 +242,6 @@
             android:indeterminate="true"
             android:visibility="invisible"
             app:indicatorColor="#00D2FF"
-            app:trackColor="#0DFFFFFF"
             app:layout_constraintBottom_toTopOf="@id/box_recycler" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -247,9 +252,9 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="#0A0E17"
+        app:headerLayout="@layout/nav_header"
         app:itemIconTint="#00D2FF"
         app:itemTextColor="#FFFFFF"
-        app:headerLayout="@layout/nav_header"
         app:menu="@menu/menu_drawer" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
