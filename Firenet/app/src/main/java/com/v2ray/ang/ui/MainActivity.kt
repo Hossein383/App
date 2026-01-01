@@ -59,14 +59,22 @@ import kotlin.math.hypot
 
 class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
-    private val mainViewModel: MainViewModel by viewModels()
+    
+    // تغییر از private به داخلی برای دسترسی آداپتور
+    val mainViewModel: MainViewModel by viewModels()
     private val adapter by lazy { MainRecyclerAdapter(this) }
     private val repo by lazy { AuthRepository(this) }
 
     private var ring1Animator: ObjectAnimator? = null
     private var ring2Animator: ObjectAnimator? = null
-    private var ring3Animator: ObjectAnimator? = null
     private var isConnectingAnimationRunning = false
+
+    // ثبت درخواست مجوز VPN
+    private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode == RESULT_OK) {
+            startV2Ray()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // تنظیم زبان
@@ -111,7 +119,6 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                     val centerView = snapHelper.findSnapView(layoutManager)
                     val pos = centerView?.let { layoutManager.getPosition(it) }
                     
-                    // اصلاح خطا: استفاده از serversCache به جای servers و دسترسی مستقیم به adapter
                     if (pos != null && pos != -1) {
                         val serverData = mainViewModel.serversCache.getOrNull(pos)
                         val serverGuid = serverData?.guid ?: ""
@@ -123,8 +130,9 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             }
         })
     }
+
     private fun setupViewModel() {
-        mainViewModel.isRunning.observe(this) { isRunningValue -> // تغییر نام برای جلوگیری از تداخل
+        mainViewModel.isRunning.observe(this) { isRunningValue ->
             adapter.isRunning = isRunningValue
             if (isRunningValue) {
                 startConnectedAnimation()
@@ -136,6 +144,9 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 binding.tvConnectionStatus.setText(R.string.not_connected)
             }
         }
+        // فراخوانی لیست سرورها در ابتدا
+        mainViewModel.reloadServerList()
+    }
 
     fun restartV2Ray() {
         V2RayServiceManager.stopVService(this)
@@ -151,24 +162,40 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     private fun startConnectingAnimation() {
         if (isConnectingAnimationRunning) return
         isConnectingAnimationRunning = true
-        ring1Animator = ObjectAnimator.ofFloat(binding.ring1, "rotation", 0f, 360f).apply { duration = 2000; repeatCount = -1; interpolator = LinearInterpolator(); start() }
-        ring2Animator = ObjectAnimator.ofFloat(binding.ring2, "rotation", 0f, -360f).apply { duration = 1500; repeatCount = -1; interpolator = LinearInterpolator(); start() }
+        
+        binding.ring1.visibility = View.VISIBLE
+        binding.ring2.visibility = View.VISIBLE
+
+        ring1Animator = ObjectAnimator.ofFloat(binding.ring1, "rotation", 0f, 360f).apply {
+            duration = 2000; repeatCount = -1; interpolator = LinearInterpolator(); start()
+        }
+        ring2Animator = ObjectAnimator.ofFloat(binding.ring2, "rotation", 0f, -360f).apply {
+            duration = 1500; repeatCount = -1; interpolator = LinearInterpolator(); start()
+        }
     }
 
     private fun startConnectedAnimation() {
         isConnectingAnimationRunning = false
-        ring1Animator?.cancel(); ring2Animator?.cancel()
+        ring1Animator?.cancel()
+        ring2Animator?.cancel()
+        binding.ring1.visibility = View.GONE
+        binding.ring2.visibility = View.GONE
         binding.bgActive.visibility = View.VISIBLE
-        // افکت Reveal انیمیشن
     }
 
     private fun startDisconnectAnimation() {
+        isConnectingAnimationRunning = false
+        ring1Animator?.cancel()
+        ring2Animator?.cancel()
+        binding.ring1.visibility = View.GONE
+        binding.ring2.visibility = View.GONE
         binding.bgActive.visibility = View.INVISIBLE
     }
 
     fun scrollToPositionCentered(position: Int) {
         val scroller = object : LinearSmoothScroller(this) {
-            override fun calculateDtToFit(vs: Int, ve: Int, bs: Int, be: Int, sp: Int): Int = (bs + (be - bs) / 2) - (vs + (ve - vs) / 2)
+            override fun calculateDtToFit(vs: Int, ve: Int, bs: Int, be: Int, sp: Int): Int =
+                (bs + (be - bs) / 2) - (vs + (ve - vs) / 2)
         }
         scroller.targetPosition = position
         binding.recyclerView.layoutManager?.startSmoothScroll(scroller)
