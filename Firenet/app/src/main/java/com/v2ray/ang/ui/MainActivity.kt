@@ -1,67 +1,39 @@
 package com.v2ray.ang.ui
 
 import android.Manifest
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
-import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.net.VpnService
-import android.os.Build
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.View
-import android.view.ViewAnimationUtils
-import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.LinearInterpolator
-import android.view.animation.OvershootInterpolator
-import android.widget.Toast
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContextCompat
-import androidx.core.view.GravityCompat
-import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.navigation.NavigationView
-import com.google.android.material.tabs.TabLayout
-import com.v2ray.ang.AppConfig
-import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.R
 import com.v2ray.ang.data.auth.AuthRepository
-import com.v2ray.ang.data.auth.TokenStore
 import com.v2ray.ang.databinding.ActivityMainBinding
-import com.v2ray.ang.extension.toast
-import com.v2ray.ang.extension.toastError
-import com.v2ray.ang.handler.AngConfigManager
-import com.v2ray.ang.handler.MigrateManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.V2RayServiceManager
-import com.v2ray.ang.net.StatusResponse
-import com.v2ray.ang.ui.main.StatusFormatter
 import com.v2ray.ang.viewmodel.MainViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
-import kotlin.math.hypot
+import androidx.core.view.GravityCompat
 
 class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
-    private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     
-    // تغییر از private به داخلی برای دسترسی آداپتور
+    // استفاده از lateinit برای جلوگیری از کرش در زمان مقداردهی lazy
+    private lateinit var binding: ActivityMainBinding
+    
+    // متغیر ViewModel باید برای Adapter قابل مشاهده (public) باشد
     val mainViewModel: MainViewModel by viewModels()
+    
     private val adapter by lazy { MainRecyclerAdapter(this) }
     private val repo by lazy { AuthRepository(this) }
 
@@ -69,15 +41,12 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     private var ring2Animator: ObjectAnimator? = null
     private var isConnectingAnimationRunning = false
 
-    // ثبت درخواست مجوز VPN
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == RESULT_OK) {
-            startV2Ray()
-        }
+        if (it.resultCode == RESULT_OK) startV2Ray()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // تنظیم زبان
+        // ۱. تنظیم زبان قبل از Super
         val locale = Locale("fa")
         Locale.setDefault(locale)
         val config = resources.configuration
@@ -85,11 +54,16 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         resources.updateConfiguration(config, resources.displayMetrics)
 
         super.onCreate(savedInstanceState)
+        
+        // ۲. مقداردهی Binding به روش ایمن
+        binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // ۳. اجرای تنظیمات UI
         setupHorizontalRecyclerView()
         setupViewModel()
         
+        // ۴. دکمه اتصال
         binding.fab.setOnClickListener {
             if (mainViewModel.isRunning.value == true) {
                 V2RayServiceManager.stopVService(this)
@@ -99,7 +73,13 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             }
         }
 
-        binding.btnMenu.setOnClickListener { binding.drawerLayout.openDrawer(GravityCompat.START) }
+        binding.btnMenu.setOnClickListener { 
+            if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                binding.drawerLayout.closeDrawer(GravityCompat.START)
+            } else {
+                binding.drawerLayout.openDrawer(GravityCompat.START)
+            }
+        }
     }
 
     private fun setupHorizontalRecyclerView() {
@@ -109,21 +89,17 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         val snapHelper = LinearSnapHelper()
         binding.recyclerView.onFlingListener = null
         snapHelper.attachToRecyclerView(binding.recyclerView)
-    
         binding.recyclerView.adapter = adapter
-    
+
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                     val centerView = snapHelper.findSnapView(layoutManager)
                     val pos = centerView?.let { layoutManager.getPosition(it) }
-                    
                     if (pos != null && pos != -1) {
-                        val serverData = mainViewModel.serversCache.getOrNull(pos)
-                        val serverGuid = serverData?.guid ?: ""
-                        if (serverGuid.isNotEmpty()) {
-                            adapter.setSelectServer(serverGuid)
+                        mainViewModel.serversCache.getOrNull(pos)?.guid?.let { 
+                            adapter.setSelectServer(it) 
                         }
                     }
                 }
@@ -144,13 +120,15 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 binding.tvConnectionStatus.setText(R.string.not_connected)
             }
         }
-        // فراخوانی لیست سرورها در ابتدا
         mainViewModel.reloadServerList()
     }
 
     fun restartV2Ray() {
         V2RayServiceManager.stopVService(this)
-        lifecycleScope.launch { delay(500); startV2Ray() }
+        lifecycleScope.launch { 
+            delay(500)
+            startV2Ray() 
+        }
     }
 
     private fun startV2Ray() {
@@ -163,6 +141,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         if (isConnectingAnimationRunning) return
         isConnectingAnimationRunning = true
         
+        // نمایش رینگ‌ها (مطمئن شوید در XML وجود دارند)
         binding.ring1.visibility = View.VISIBLE
         binding.ring2.visibility = View.VISIBLE
 
@@ -201,5 +180,8 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         binding.recyclerView.layoutManager?.startSmoothScroll(scroller)
     }
 
-    override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean = true
+    override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
+        binding.drawerLayout.closeDrawer(GravityCompat.START)
+        return true
+    }
 }
